@@ -1,0 +1,8 @@
+[
+  {"level":"MEDIUM","module":"mounts","message":"Suspicious mount options found for /system/lib/sample-a.so: noatime","matched_indicator":null},
+  {"level":"MEDIUM","module":"mounts","message":"Suspicious mount options found for /system/lib/sample-b.so: noatime","matched_indicator":null},
+  {"level":"HIGH","module":"mounts","message":"System partition /system/bin is mounted as read-write (rw). This may indicate system modifications.","matched_indicator":null},
+  {"level":"MEDIUM","module":"mounts","message":"Suspicious mount options found for /system/bin: rw","matched_indicator":null},
+  {"level":"HIGH","module":"mounts","message":"System partition /system/lib64 is mounted as read-write (rw). This may indicate system modifications.","matched_indicator":null},
+  {"level":"MEDIUM","module":"mounts","message":"Suspicious mount options found for /system/lib64: rw","matched_indicator":null}
+]

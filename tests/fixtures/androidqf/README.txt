@@ -1,0 +1,1 @@
+This synthetic, privacy-scrubbed MVT-format fixture supports parser regression tests. All device-specific names and paths are fabricated. The fixture does not represent a validated spyware detection or a real AndroidQF acquisition.
