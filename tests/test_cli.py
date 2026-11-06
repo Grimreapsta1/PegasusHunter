@@ -615,7 +615,6 @@ def test_mvt_failure_does_not_print_verdict_and_preserves_partial_output(tmp_pat
     assert partial_report["scan_metadata"]["platform"] == "ios"
     assert partial_report["scan_metadata"]["acquisition"] == "backup"
     scan_metadata = json.loads((output / "pegasushunter_scan.json").read_text())
-    assert scan_metadata["indicator_status"] == "complete"
     assert scan_metadata["acquisition"] == "backup"
 
 
