@@ -1,0 +1,6 @@
+{
+  "mvt_version": "2026.11.2",
+  "date": "2026-11-06T00:00:00",
+  "target_path": "/synthetic/device/path",
+  "ioc_files": ["synthetic-not-a-real-ioc.stix2"]
+}

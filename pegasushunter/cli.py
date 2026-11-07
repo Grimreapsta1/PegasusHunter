@@ -10,7 +10,7 @@ from collections.abc import Sequence
 from pathlib import Path
 
 from .indicators import COLLECTIONS, _validate_stix, load_indicator_cache, update_indicator_cache
-from .report import ReportError, analyze_results, render_text
+from .report import ReportError, _apply_synthetic_fixture_disclaimer, analyze_results, render_text
 
 
 def build_parser():
@@ -185,6 +185,7 @@ def _run_scan(args, *, runner=None) -> int:
         report["limitations"].extend(acq["limitations"])
     report["coverage_warnings"] = list(dict.fromkeys(report["coverage_warnings"]))
     report["coverage_level"] = "limited" if report["coverage_warnings"] else "results_present"
+    _apply_synthetic_fixture_disclaimer(report)
     report_path = output / "pegasushunter_report.json"
     report_tmp = report_path.with_suffix(".json.tmp")
     report_tmp.write_text(json.dumps(report, indent=2, sort_keys=True) + "\n", encoding="utf-8")
@@ -504,6 +505,7 @@ def main(argv: Sequence[str] | None = None) -> int:
             return _run_scan(args)
         if args.command == "summarize":
             report = analyze_results(args.results)
+            _apply_synthetic_fixture_disclaimer(report)
             print(json.dumps(report, sort_keys=True, indent=2) if args.format == "json" else render_text(report))
             return 0
         return _run_scan(args)

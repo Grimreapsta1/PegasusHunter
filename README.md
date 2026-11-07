@@ -85,7 +85,14 @@ pegasushunter summarize /path/to/mvt-results --format json
 
 MVT recommends AndroidQF as the separate Android collection tool, followed by `mvt-android check-androidqf`. Pegasus Hunter analyzes an existing acquisition directory or ZIP archive; it does not acquire from a live phone. It snapshots the original acquisition's safe artifact facts and `acquisition.json` module outcomes before analysis, then preserves that snapshot in reports; summaries never reopen the target path. It cannot independently attest acquisition integrity. Intrusion Logs are optional and may be absent. Its output identifies those coverage gaps and provides additional context for read-write mount alerts. This CLI prototype has not been validated against independent known-clean and known-compromised corpora or on iOS hardware; do not use it as a forensic attestation tool.
 
-## Development
+## Indicator coverage and limits
+
+The curated catalogue is compared against the official MVT Indicators index and currently contains all 19 indexed collections. Run `PEGASUSHUNTER_TEST_LIVE_INDICATORS=1 python -m pytest -q tests/test_indicators.py` to check catalogue parity and validate that the live bundles parse. This checks public-source coverage, not device-level detection accuracy. Indicators come from published research, can be incomplete or stale, and a match is a lead for expert review; no matches do not show that a device is clean. MVT explicitly cautions that public indicators are insufficient to establish a clean device ([MVT documentation](https://docs.mvt.re/en/stable/introduction/)).
+
+The synthetic fixture marker is descriptive test metadata, not a cryptographic provenance claim; a copied or edited results folder can change it. Machine consumers should use `device_evidence_status` and `device_evidence_assessment` for the underlying MVT finding interpretation, and treat `synthetic_test_fixture` as a caution flag rather than verified provenance.
+
+The MVT indicators index is at https://github.com/mvt-project/mvt-indicators/blob/main/indicators.yaml. Each collection should retain attribution and the references from its upstream index; review upstream licensing before redistributing their indicator contents.
+
 
 ```sh
 python -m pytest -q
@@ -94,6 +101,10 @@ ruff check pegasushunter tests
 pyright
 python -m build
 ```
+
+## Evaluation boundaries
+
+The repo's synthetic MVT-format fixtures and CI integration test check parsing, reporting, and command compatibility; they are not a known-compromised or known-benign device corpus and do not establish detection accuracy. See [`EVALUATION_PLAN.md`](EVALUATION_PLAN.md) for a consent-first evaluation protocol and unsent collaboration email drafts. Do not add raw device acquisitions, backups, or scan results to this repository.
 
 The default tests use local fixtures. To explicitly verify that every curated indicator URL is reachable and still contains a valid STIX bundle, run:
 

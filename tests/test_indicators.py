@@ -4,13 +4,40 @@ import json
 from datetime import UTC, datetime
 
 
-def test_indicator_manifest_lists_pegasus_and_multiple_threat_families() -> None:
+def test_indicator_catalog_matches_current_official_mvt_index() -> None:
+    import os
+    import re
+    import urllib.request
+
+    import pytest
+
+    if os.environ.get("PEGASUSHUNTER_TEST_LIVE_INDICATORS") != "1":
+        pytest.skip("set PEGASUSHUNTER_TEST_LIVE_INDICATORS=1 to compare with MVT's live index")
+
     from pegasushunter.indicators import COLLECTIONS
 
-    names = {item["name"] for item in COLLECTIONS}
-    assert "NSO Group Pegasus indicators" in names
-    assert "Predator spyware indicators" in names
-    assert len(COLLECTIONS) >= 10
+    index_url = "https://raw.githubusercontent.com/mvt-project/mvt-indicators/main/indicators.yaml"
+    request = urllib.request.Request(index_url, headers={"User-Agent": "PegasusHunter-test/0.1"})
+    with urllib.request.urlopen(request, timeout=30) as response:
+        index_text = response.read().decode("utf-8")
+
+    upstream = set()
+    blocks = re.findall(r"(?ms)^  -\s*\n(.*?)(?=^  -\s*\n|\Z)", index_text)
+    for block in blocks:
+        source_types = re.findall(r"(?m)^    type: (.+)$", block)
+        assert source_types == ["github"], f"Review unsupported MVT index entry type(s): {source_types}"
+        fields = {
+            key: value
+            for key, value in re.findall(r"(?m)^      (owner|repo|branch|path): (.+)$", block)
+        }
+        assert set(fields) == {"owner", "repo", "branch", "path"}
+        upstream.add(
+            "https://raw.githubusercontent.com/{owner}/{repo}/{branch}/{path}".format(**fields)
+        )
+
+    local = {entry["url"] for entry in COLLECTIONS}
+
+    assert upstream == local
 
 
 def test_indicator_catalog_urls_are_live_and_parseable() -> None:

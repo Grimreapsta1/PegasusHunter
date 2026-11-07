@@ -1,0 +1,11 @@
+[
+  {
+    "level": "CRITICAL",
+    "module": "ios_processes",
+    "message": "Synthetic process artifact associated with a published spyware indicator; fictional regression data only.",
+    "matched_indicator": {
+      "name": "Synthetic published-trace scenario (not a real IOC)",
+      "id": "indicator--00000000-0000-4000-8000-000000000001"
+    }
+  }
+]

@@ -154,6 +154,82 @@ def test_androidqf_fixture_preserves_mount_findings_and_context(tmp_path: Path) 
     assert "no public spyware-indicator matches were found" in text
 
 
+def test_synthetic_published_trace_scenario_is_cautiously_reported(tmp_path: Path) -> None:
+    """Exercise report wording using fiction; this is not a real positive sample."""
+    fixture = Path(__file__).parent / "fixtures" / "published_trace_synthetic"
+    results = tmp_path / "synthetic-results"
+    results.mkdir()
+    for name in ("alerts.json", "info.json", "README.txt", "pegasushunter_scan.json"):
+        shutil.copy2(fixture / name, results / name)
+
+    report = analyze_results(results)
+    text = render_text(report).lower()
+
+    assert report["indicator_match_count"] == 1
+    assert report["overall_assessment"] == "synthetic_test_fixture"
+    assert "does not by itself prove infection" in text
+    assert "potential match does not prove successful infection" in " ".join(report["limitations"]).lower()
+    assert "synthetic" in (results / "README.txt").read_text().lower()
+    assert report["coverage"]["test_fixture"] == "synthetic_published_trace_regression"
+    assert report["coverage"]["indicator_status"] == "complete"
+    assert "synthetic test fixture" in text
+    assert "not an assessment of a real device" in text
+    assert "synthetic test fixture" in report["plain_summary"].lower()
+    assert "not an assessment of a real device" in report["plain_summary"].lower()
+    assert report["status"] == "synthetic_test_fixture"
+    assert report["overall_assessment"] == "synthetic_test_fixture"
+    assert "/synthetic/device/path" not in json.dumps(report)
+
+
+def test_unrecognized_synthetic_metadata_does_not_relabel_real_findings(tmp_path: Path) -> None:
+    (tmp_path / "alerts.json").write_text(json.dumps([{
+        "level": "CRITICAL", "module": "ios_processes", "message": "ordinary result match",
+        "matched_indicator": {"name": "Test indicator", "id": "indicator--test"},
+    }]))
+    (tmp_path / "info.json").write_text(json.dumps({"mvt_version": "2026.11.2", "date": "now", "ioc_files": []}))
+    (tmp_path / "pegasushunter_scan.json").write_text(json.dumps({"test_fixture": "synthetic_user_claim"}))
+
+    report = analyze_results(tmp_path)
+
+    assert report["status"] == "evidence_found"
+    assert report["overall_assessment"] == "indicator_match_found"
+    assert report["synthetic_test_fixture"] is False
+    assert report["coverage"]["test_fixture"] is None
+    assert report["indicator_match_count"] == 1
+
+
+def test_synthetic_report_keeps_original_finding_assessment_for_machine_readers(tmp_path: Path) -> None:
+    fixture = Path(__file__).parent / "fixtures" / "published_trace_synthetic"
+    for name in ("alerts.json", "info.json", "pegasushunter_scan.json"):
+        shutil.copy2(fixture / name, tmp_path / name)
+
+    report = analyze_results(tmp_path)
+
+    assert report["status"] == "synthetic_test_fixture"
+    assert report["overall_assessment"] == "synthetic_test_fixture"
+    assert report["synthetic_test_fixture"] is True
+    assert report["device_evidence_status"] == "evidence_found"
+    assert report["device_evidence_assessment"] == "indicator_match_found"
+
+
+def test_ordinary_device_report_retains_indicator_assessment(tmp_path: Path) -> None:
+    (tmp_path / "alerts.json").write_text(json.dumps([{
+        "level": "CRITICAL", "module": "ios_processes", "message": "ordinary regression match",
+        "matched_indicator": {"name": "Test indicator", "id": "indicator--test"},
+    }]))
+    (tmp_path / "info.json").write_text(json.dumps({"mvt_version": "2026.11.2", "date": "now", "ioc_files": []}))
+    (tmp_path / "pegasushunter_scan.json").write_text(json.dumps({"indicator_status": "complete"}))
+
+    report = analyze_results(tmp_path)
+    text = render_text(report).lower()
+
+    assert report["status"] == "evidence_found"
+    assert report["overall_assessment"] == "indicator_match_found"
+    assert report["synthetic_test_fixture"] is False
+    assert not report["plain_summary"].lower().startswith("synthetic test fixture")
+    assert "synthetic test fixture" not in text
+
+
 def test_read_write_mount_alerts_get_custom_rom_context_without_dismissal(tmp_path: Path) -> None:
     alerts = []
     for index in range(7):

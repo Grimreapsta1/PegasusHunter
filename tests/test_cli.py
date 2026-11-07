@@ -25,6 +25,33 @@ def test_json_summary_is_machine_readable(tmp_path, capsys) -> None:
     assert result["finding_count"] == 1
 
 
+def test_json_summary_marks_synthetic_fixture_without_normal_finding_status(tmp_path, capsys) -> None:
+    from pegasushunter.report import analyze_results
+
+    fixture = tmp_path / "synthetic"
+    fixture.mkdir()
+    (fixture / "alerts.json").write_text(json.dumps([{
+        "level": "CRITICAL", "module": "synthetic", "message": "fictional fixture IOC",
+        "matched_indicator": {"name": "Synthetic only", "id": "indicator--synthetic"},
+    }]))
+    (fixture / "info.json").write_text(json.dumps({"mvt_version": "2026.11.2", "date": "now", "ioc_files": []}))
+    (fixture / "pegasushunter_scan.json").write_text(json.dumps({
+        "test_fixture": "synthetic_published_trace_regression",
+        "indicator_status": "complete",
+        "indicator_collections": ["Synthetic only"],
+    }))
+
+    report = analyze_results(fixture)
+    assert report["status"] == "synthetic_test_fixture"
+    assert report["overall_assessment"] == "synthetic_test_fixture"
+    assert main(["summarize", str(fixture), "--format", "json"]) == 0
+    result = json.loads(capsys.readouterr().out)
+    assert result["status"] == "synthetic_test_fixture"
+    assert result["overall_assessment"] == "synthetic_test_fixture"
+    assert "synthetic test fixture" in result["plain_summary"].lower()
+    assert "not an assessment of a real device" in result["plain_summary"].lower()
+
+
 def test_scan_fails_before_creating_output_if_mvt_missing(tmp_path, monkeypatch, capsys) -> None:
     from pegasushunter import cli
     source = tmp_path / "backup"

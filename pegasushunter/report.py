@@ -315,9 +315,17 @@ def analyze_results(results_dir: Path) -> dict[str, Any]:
         assessment = "no_known_matches"
         summary = "No known spyware matches were found in the MVT results provided. This does not prove the phone is clean."
 
-    return {
-        "status": "evidence_found" if findings else "no_known_matches",
+    is_synthetic_fixture = (
+        isinstance(scan_meta, dict)
+        and scan_meta.get("test_fixture") == "synthetic_published_trace_regression"
+    )
+    original_status = "evidence_found" if findings else "no_known_matches"
+    report = {
+        "status": original_status,
+        "device_evidence_status": original_status,
         "overall_assessment": assessment,
+        "device_evidence_assessment": assessment,
+        "synthetic_test_fixture": is_synthetic_fixture,
         "indicator_match_found": bool(indicator_matches),
         "plain_summary": summary,
         "finding_count": len(findings),
@@ -341,6 +349,7 @@ def analyze_results(results_dir: Path) -> dict[str, Any]:
             "indicator_status": scan_meta.get("indicator_status") if scan_meta else None,
             "indicator_collections": scan_meta.get("indicator_collections", []) if scan_meta else [],
             "indicator_updated_at": scan_meta.get("indicator_updated_at") if scan_meta else None,
+            "test_fixture": scan_meta.get("test_fixture") if scan_meta and is_synthetic_fixture else None,
             "androidqf": androidqf_coverage,
             "mvt_metadata": {
                 **({key: info[key] for key in ("version", "platform", "start_time", "end_time") if isinstance(info.get(key), (str, int, float, bool))} if info else {}),
@@ -357,10 +366,25 @@ def analyze_results(results_dir: Path) -> dict[str, Any]:
             "No matches do not prove the device is clean; evidence may be missing, erased, unsupported, or not publicly known.",
         ],
     }
+    return _apply_synthetic_fixture_disclaimer(report)
+
+
+def _apply_synthetic_fixture_disclaimer(report: dict[str, Any]) -> dict[str, Any]:
+    if report.get("synthetic_test_fixture") is True:
+        disclaimer = "Synthetic test fixture—not an assessment of a real device. "
+        summary = report.get("plain_summary")
+        if isinstance(summary, str) and not summary.startswith(disclaimer):
+            report["plain_summary"] = disclaimer + summary
+        report["status"] = "synthetic_test_fixture"
+        report["overall_assessment"] = "synthetic_test_fixture"
+    return report
 
 
 def render_text(report: dict[str, Any]) -> str:
+    _apply_synthetic_fixture_disclaimer(report)
     lines = ["Pegasus Hunter — MVT findings summary", "", report["plain_summary"]]
+    if report.get("status") == "synthetic_test_fixture":
+        lines.append("Synthetic test fixture: this is not an assessment of a real device.")
     if report["indicator_match_count"]:
         indicator_word = "one" if report["indicator_match_count"] == 1 else str(report["indicator_match_count"])
         lines.append(f"{indicator_word.capitalize()} public spyware indicator match(es) found.")
